@@ -1,0 +1,64 @@
+name: Build and Deploy Site
+
+on:
+  push:
+    branches: [data, web]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repo (current branch
+      # Step 2: Create source structure
+      - name: Prepare directories
+        run: |
+          mkdir -p source/data
+          mkdir -p source/web
+
+      # Step 3: Get data branch contents
+      - name: Checkout data branch
+        uses: actions/checkout@v4
+        with:
+          ref: data
+          path: data-branch
+
+      - name: Copy data branch files
+        run: |
+          cp -r data-branch/* source/data/ || true
+
+      # Step 4: Get web branch contents
+      - name: Checkout web branch
+        uses: actions/checkout@v4
+        with:
+          ref: web
+          path: web-branch
+
+      - name: Copy web branch files
+        run: |
+          cp -r web-branch/* source/web/ || true
+
+      # Step 5: Build (optional — if you have build steps)
+      # For example, you could add:
+      # - run: npm ci && npm run build
+      #   working-directory: source/web
+
+      # Step 6: Deploy 'source' folder
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: "./source"
+          
+  deploy:
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deployment          
